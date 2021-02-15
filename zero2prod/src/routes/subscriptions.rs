@@ -11,13 +11,12 @@ pub struct FormData {
 }
 #[tracing::instrument(name="Adding a new subscriber", 
 skip(form, pool),
-fields(email=%form.email,name=%form.name))]
+fields(request_id = %Uuid::new_v4(),email=%form.email,name=%form.name))]
 
 pub async fn subscribe(
     form: web::Form<FormData>,
     pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, HttpResponse> {
-    let query_span = tracing::info_span!("Saving new subscriber details in the database");
     insert_subscriber(&pool, &form)
         .await
         .map_err(|e| HttpResponse::InternalServerError().finish())?;
