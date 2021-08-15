@@ -1,13 +1,13 @@
 use validator::validate_email;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct SubscriberEmail(String);
 
 impl SubscriberEmail {
     pub fn parse(s:String) -> Result<SubscriberEmail,String> {
         if validate_email(&s){
             Ok(Self(s))
-        } else { 
+        } else {
             Err(format!("{} is not a valid subscriber email.", s))
         }
     }
@@ -43,7 +43,7 @@ mod tests{
         let email = "@domain.com".to_string();
         assert_err!(SubscriberEmail::parse(email));
     }
-    
+
 //    #[test]
 //    fn valid_emails_are_parsed_successfully() {
 //        let email = SafeEmail().fake();
