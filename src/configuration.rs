@@ -1,14 +1,16 @@
 use std::convert::{TryFrom, TryInto};
+use sqlx::postgres::PgConnectOptions;
+
 use crate::domain::SubscriberEmail;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize,Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
     pub email_client: EmailClientSettings,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize,Clone)]
 pub struct EmailClientSettings{
     pub base_url: String,
     pub sender_email: String,
@@ -21,12 +23,12 @@ impl EmailClientSettings{
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize,Clone)]
 pub struct ApplicationSettings {
     pub port: u16,
     pub host: String,
 }
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize,Clone)]
 pub struct DatabaseSettings {
     pub username: String,
     pub password: String,
@@ -46,6 +48,14 @@ impl DatabaseSettings {
             "postgres://{}:{}@{}:{}",
             self.username, self.password, self.host, self.port
         )
+    }
+    pub fn with_db(&self)-> PgConnectOptions{
+        PgConnectOptions::new()
+            .host(&self.host)
+            .username(&self.username)
+            .password(&self.password)
+            .port(self.port)
+
     }
 }
 
