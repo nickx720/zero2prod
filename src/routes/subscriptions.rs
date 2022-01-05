@@ -1,9 +1,9 @@
-use crate::domain::{NewSubscriber, SubscriberName,SubscriberEmail};
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use sqlx::PgPool;
-use tracing::Instrument;
 use std::convert::TryInto;
+use tracing::Instrument;
 use uuid::Uuid;
 
 #[derive(serde::Deserialize)]
@@ -15,29 +15,25 @@ pub struct FormData {
 impl TryInto<NewSubscriber> for FormData {
     type Error = String;
 
-    fn try_into(self)-> Result<NewSubscriber,Self::Error> {
+    fn try_into(self) -> Result<NewSubscriber, Self::Error> {
         let name = SubscriberName::parse(self.name)?;
         let email = SubscriberEmail::parse(self.email)?;
-        Ok(NewSubscriber{ email,name})
-
+        Ok(NewSubscriber { email, name })
     }
 }
 
-#[tracing::instrument(name="Adding a new subscriber", 
+#[tracing::instrument(name="Adding a new subscriber",
     skip(form, pool),
     fields(email=%form.email,name=%form.name))]
 
-pub async fn subscribe(
-    form: web::Form<FormData>,
-    pool: web::Data<PgPool>,
-) -> HttpResponse {
-    let new_subscriber = match form.0.try_into(){
-        Ok(form)=> form,
+pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
+    let new_subscriber = match form.0.try_into() {
+        Ok(form) => form,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
     match insert_subscriber(&pool, &new_subscriber).await {
-        Ok(_)=> HttpResponse::Ok().finish(),
-        Err(_)=> HttpResponse::InternalServerError().finish(),
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
 
@@ -52,18 +48,18 @@ pub async fn insert_subscriber(
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-        INSERT INTO subscriptions (id, email, name, subscribed_at)
-        VALUES ($1, $2, $3, $4)"#,
+        INSERT INTO subscriptions (id, email, name, subscribed_at, status)
+        VALUES ($1, $2, $3, $4, 'confirmed')"#,
         Uuid::new_v4(),
         new_subscriber.email.as_ref(),
         new_subscriber.name.as_ref(),
         Utc::now()
     )
-        .execute(pool)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to execute query: {:?}", e);
-            e
-        })?;
+    .execute(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
     Ok(())
 }
